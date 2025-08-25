@@ -1,4 +1,5 @@
-""" Bot factory"""
+"""Bot factory"""
+
 from common.settings import Settings
 from common.utils import Folder, sub_file
 from .bot import Bot, GameMode
@@ -10,14 +11,14 @@ from .akagiot.bot_akagiot import BotAkagiOt
 MODEL_TYPE_STRINGS = ["Local", "AkagiOT", "MJAPI"]
 
 
-def get_bot(settings:Settings) -> Bot:
-    """ create the Bot instance based on settings"""
-    
+def get_bot(settings: Settings) -> Bot:
+    """create the Bot instance based on settings"""
+
     match settings.model_type:
-        case "Local":   
-            model_files:dict = {
+        case "Local":
+            model_files: dict = {
                 GameMode.MJ4P: sub_file(Folder.MODEL, settings.model_file),
-                GameMode.MJ3P: sub_file(Folder.MODEL, settings.model_file_3p)
+                GameMode.MJ3P: sub_file(Folder.MODEL, settings.model_file_3p),
             }
             bot = BotMortalLocal(model_files)
         case "AkagiOT":
@@ -28,5 +29,3 @@ def get_bot(settings:Settings) -> Bot:
             raise ValueError(f"Unknown model type: {settings.model_type}")
 
     return bot
-
-

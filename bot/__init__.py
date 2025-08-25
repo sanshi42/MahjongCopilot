@@ -1,3 +1,4 @@
-""" mjai protocol bot implementations"""
+"""mjai protocol bot implementations"""
+
 from .factory import *
 from .bot import *

@@ -1,4 +1,4 @@
-""" Mahjong Copilot
+"""Mahjong Copilot
 
 Copyright (C) 2024 Latorc (Github page: https://github.com/latorc)
 
@@ -24,7 +24,7 @@ from bot_manager import BotManager
 
 
 def main():
-    """ Main entry point """
+    """Main entry point"""
     LogHelper.config_logging()
     setting = Settings()
     # utils.set_dpi_awareness()
@@ -32,6 +32,7 @@ def main():
     bot_manager = BotManager(setting)
     gui = MainGUI(setting, bot_manager)
     gui.mainloop()
+
 
 if __name__ == "__main__":
     main()

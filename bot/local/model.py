@@ -1,5 +1,6 @@
-""" Model related classes that support Mortal engine """
-#pylint:disable=no-member, C0115, C0116
+"""Model related classes that support Mortal engine"""
+
+# pylint:disable=no-member, C0115, C0116
 from itertools import permutations
 from functools import partial
 from typing import Optional, Tuple, Union
@@ -33,14 +34,15 @@ class ChannelAttention(nn.Module):
         x = weight.unsqueeze(-1) * x
         return x
 
+
 class ResBlock(nn.Module):
     def __init__(
         self,
         channels,
         *,
-        norm_builder = nn.Identity,
-        actv_builder = nn.ReLU,
-        pre_actv = False,
+        norm_builder=nn.Identity,
+        actv_builder=nn.ReLU,
+        pre_actv=False,
     ):
         super().__init__()
         self.pre_actv = pre_actv
@@ -73,6 +75,7 @@ class ResBlock(nn.Module):
             out = self.actv(out)
         return out
 
+
 class ResNet(nn.Module):
     def __init__(
         self,
@@ -80,22 +83,26 @@ class ResNet(nn.Module):
         conv_channels,
         num_blocks,
         *,
-        norm_builder = nn.Identity,
-        actv_builder = nn.ReLU,
-        pre_actv = False,
+        norm_builder=nn.Identity,
+        actv_builder=nn.ReLU,
+        pre_actv=False,
     ):
         super().__init__()
 
         blocks = []
         for _ in range(num_blocks):
-            blocks.append(ResBlock(
-                conv_channels,
-                norm_builder = norm_builder,
-                actv_builder = actv_builder,
-                pre_actv = pre_actv,
-            ))
+            blocks.append(
+                ResBlock(
+                    conv_channels,
+                    norm_builder=norm_builder,
+                    actv_builder=actv_builder,
+                    pre_actv=pre_actv,
+                )
+            )
 
-        layers = [nn.Conv1d(in_channels, conv_channels, kernel_size=3, padding=1, bias=False)]
+        layers = [
+            nn.Conv1d(in_channels, conv_channels, kernel_size=3, padding=1, bias=False)
+        ]
         if pre_actv:
             layers += [*blocks, norm_builder(), actv_builder()]
         else:
@@ -110,6 +117,7 @@ class ResNet(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
 
 class Brain(nn.Module):
     def __init__(self, *, conv_channels, num_blocks, is_oracle=False, version=1):
@@ -138,24 +146,28 @@ class Brain(nn.Module):
             case 2:
                 pass
             case 3 | 4:
-                norm_builder = partial(nn.BatchNorm1d, conv_channels, momentum=0.01, eps=1e-3)
+                norm_builder = partial(
+                    nn.BatchNorm1d, conv_channels, momentum=0.01, eps=1e-3
+                )
             case _:
-                raise ValueError(f'Unexpected version {self.version}')
+                raise ValueError(f"Unexpected version {self.version}")
 
         self.encoder = ResNet(
-            in_channels = in_channels,
-            conv_channels = conv_channels,
-            num_blocks = num_blocks,
-            norm_builder = norm_builder,
-            actv_builder = actv_builder,
-            pre_actv = pre_actv,
+            in_channels=in_channels,
+            conv_channels=conv_channels,
+            num_blocks=num_blocks,
+            norm_builder=norm_builder,
+            actv_builder=actv_builder,
+            pre_actv=pre_actv,
         )
         self.actv = actv_builder()
 
         # always use EMA or CMA when True
         self._freeze_bn = False
 
-    def forward(self, obs, invisible_obs: Optional[Tensor] = None) -> Union[Tuple[Tensor, Tensor], Tensor]:
+    def forward(
+        self, obs, invisible_obs: Optional[Tensor] = None
+    ) -> Union[Tuple[Tensor, Tensor], Tensor]:
         if self.is_oracle:
             assert invisible_obs is not None
             obs = torch.cat((obs, invisible_obs), dim=1)
@@ -170,7 +182,7 @@ class Brain(nn.Module):
             case 2 | 3 | 4:
                 return self.actv(phi)
             case _:
-                raise ValueError(f'Unexpected version {self.version}')
+                raise ValueError(f"Unexpected version {self.version}")
 
     def train(self, mode=True):
         super().train(mode)
@@ -191,6 +203,7 @@ class Brain(nn.Module):
         self._freeze_bn = value
         return self.train(self.training)
 
+
 class AuxNet(nn.Module):
     def __init__(self, dims=None):
         super().__init__()
@@ -199,6 +212,7 @@ class AuxNet(nn.Module):
 
     def forward(self, x):
         return self.net(x).split(self.dims, dim=-1)
+
 
 class DQN(nn.Module):
     def __init__(self, *, version=1):
@@ -230,16 +244,22 @@ class DQN(nn.Module):
         else:
             v = self.v_head(phi)
             a = self.a_head(phi)
-        a_sum = a.masked_fill(~mask, 0.).sum(-1, keepdim=True)
+        a_sum = a.masked_fill(~mask, 0.0).sum(-1, keepdim=True)
         mask_sum = mask.sum(-1, keepdim=True)
         a_mean = a_sum / mask_sum
         q = (v + a - a_mean).masked_fill(~mask, -torch.inf)
         return q
 
+
 class GRP(nn.Module):
     def __init__(self, hidden_size=64, num_layers=2):
         super().__init__()
-        self.rnn = nn.GRU(input_size=libriichi.consts.GRP_SIZE, hidden_size=hidden_size, num_layers=num_layers, batch_first=True)
+        self.rnn = nn.GRU(
+            input_size=libriichi.consts.GRP_SIZE,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+        )
         self.fc = nn.Sequential(
             nn.Linear(hidden_size * num_layers, hidden_size * num_layers),
             nn.ReLU(inplace=True),
@@ -251,8 +271,8 @@ class GRP(nn.Module):
         # perms are the permutations of all possible rank-by-player result
         perms = torch.tensor(list(permutations(range(4))))
         perms_t = perms.transpose(0, 1)
-        self.register_buffer('perms', perms)     # (24, 4)
-        self.register_buffer('perms_t', perms_t) # (4, 24)
+        self.register_buffer("perms", perms)  # (24, 4)
+        self.register_buffer("perms_t", perms_t)  # (4, 24)
 
     # input: [grand_kyoku, honba, kyotaku, s[0], s[1], s[2], s[3]]
     # grand_kyoku: E1 = 0, S4 = 7, W4 = 11
@@ -261,7 +281,9 @@ class GRP(nn.Module):
     def forward(self, inputs):
         lengths = torch.tensor([t.shape[0] for t in inputs], dtype=torch.int64)
         inputs = pad_sequence(inputs, batch_first=True)
-        packed_inputs = pack_padded_sequence(inputs, lengths, batch_first=True, enforce_sorted=False)
+        packed_inputs = pack_padded_sequence(
+            inputs, lengths, batch_first=True, enforce_sorted=False
+        )
         return self.forward_packed(packed_inputs)
 
     def forward_packed(self, packed_inputs):
